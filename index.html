@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>記憶翻牌遊戲</title>
+    <style>
+        * {
+            user-select: none;
+        }
+
+        /* 全域 html 與 body 設定 */
+        html,
+        body {
+            height: 100%;
+            width: 100%;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+        }
+
+        /* body 主要樣式設定 */
+        body {
+            font-family: 'DFKai-SB', '標楷體', DFKai, serif;
+            text-align: center;
+            background: url('background.jpg') no-repeat center center fixed;
+            background-size: 100% 100%;
+            padding-top: 60px;
+            cursor: url('pen.cur') 0 0, auto;
+        }
+
+        /* 頂部區塊樣式 */
+        .top-section {
+            padding-top: 30px;
+        }
+
+        /* 中間區塊樣式 */
+        .middle-section {
+            margin: 40px auto 0 auto;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 16px;
+        }
+
+        /* 底部區塊樣式 */
+        .bottom-section {
+            margin-top: 60px;
+        }
+
+        /* 遊戲區域格線設定 */
+        #game {
+            display: grid;
+            grid-template-columns: repeat(4, 90px);
+            grid-gap: 24px;
+            justify-content: center;
+            margin: 20px auto;
+        }
+
+        /* 卡片容器設定 */
+        .card {
+            width: 90px;
+            height: 120px;
+            perspective: 600px;
+            cursor: pointer;
+        }
+
+        /* 卡片內部翻轉容器 */
+        .card-inner {
+            width: 100%;
+            height: 100%;
+            transition: transform 0.5s;
+            transform-style: preserve-3d;
+            position: relative;
+        }
+
+        /* 卡片翻轉狀態 */
+        .flipped .card-inner {
+            transform: rotateY(180deg);
+        }
+
+        /* 卡片正面與背面共用設定 */
+        .card-front,
+        .card-back {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            backface-visibility: hidden;
+            border-radius: 8px;
+        }
+
+        /* 卡片正面樣式 */
+        .card-front {
+            background-color: #ccc;
+        }
+
+        /* 卡片背面樣式 */
+        .card-back {
+            transform: rotateY(180deg);
+            background-position: center;
+            background-repeat: no-repeat;
+            background-size: contain;
+        }
+
+        /* 控制按鈕區塊 */
+        #controls {
+            margin-top: 20px;
+        }
+
+        /* 按鈕共用樣式 */
+        button {
+            margin: 0 5px;
+            padding: 12px 24px;
+            font-size: 16px;
+            font-weight: bold;
+            color: white;
+            background-color: orange;
+            border: none;
+            border-radius: 999px;
+            cursor: pointer;
+        }
+
+        /* 計時器顯示框 */
+        .timer-box {
+            padding: 12px 24px;
+            font-size: 16px;
+            font-weight: bold;
+            color: white;
+            background-color: blue;
+            border-radius: 999px;
+        }
+
+        /* 浮動標題動畫樣式 */
+        .floating-title {
+            animation: float 3s ease-in-out infinite;
+            font-size: 48px;
+            font-weight: 900;
+            font-family: 'DFKai-SB', '標楷體', DFKai, serif;
+            color: white;
+            text-shadow: 3px 3px 6px rgba(0, 0, 0, 0.5);
+            margin-top: 20px;
+        }
+
+        /* 浮動動畫關鍵影格 */
+        @keyframes float {
+
+            0%,
+            100% {
+                transform: translateY(0);
+            }
+
+            50% {
+                transform: translateY(-10px);
+            }
+        }
+
+        /* 像素風碎片動畫樣式 */
+        .confetti-vertical {
+            position: fixed;
+            top: -100%;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            background-image:
+                radial-gradient(square, #ffcc00 3px, transparent 4px),
+                radial-gradient(square, #ff6699 3px, transparent 4px),
+                radial-gradient(square, #66ccff 3px, transparent 4px),
+                radial-gradient(square, #99ff66 3px, transparent 4px);
+            background-size: 10px 10px;
+            background-repeat: repeat;
+            animation: pixel-confetti-drop 1.5s linear forwards;
+            z-index: 9999;
+        }
+
+        /* 像素風碎片動畫關鍵影格 */
+        @keyframes pixel-confetti-drop {
+            0% {
+                top: -100%;
+                opacity: 1;
+            }
+
+            90% {
+                top: 0%;
+                opacity: 1;
+            }
+
+            100% {
+                top: 0%;
+                opacity: 0;
+            }
+        }
+
+        #draw-layer {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: -1;
+            pointer-events: none;
+        }
+
+        .draw-control {
+            margin: 0 0.05px 0 0;
+            padding: 10px 20px;
+            font-size: 14px;
+            font-weight: bold;
+            color: black;
+            background-color: #ccc;
+            border: none;
+            border-radius: 999px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+
+<body>
+    <canvas id="draw-layer"></canvas>
+    <!-- 頂部區塊：標題與控制按鈕 -->
+    <div class="top-section">
+        <h1 class="floating-title">課堂幻視錄</h1>
+        <div id="controls">
+            <button id="home" style="margin-right: 10px;">回首頁</button>
+            <button onclick="restartGame()" style="margin-right: 10px;">再玩一次</button>
+            <button onclick="exitGame()">退出遊戲</button>
+        </div>
+    </div>
+
+    <!-- 中間區塊：開始按鈕與計時器 -->
+    <div class="middle-section">
+        <button id="start" onclick="startTimer()" style="background-color: red;">開始</button>
+        <div id="timer" class="timer-box">0 秒</div>
+    </div>
+    <!-- 畫筆/橡皮擦/清除按鈕區（紙牌下方中央對齊，響應式排列） -->
+
+    <!-- 底部區塊：遊戲卡片區 -->
+    <div class="bottom-section">
+        <div id="game"></div>
+        <div style="display: flex; justify-content: center; flex-wrap: wrap; gap: 16px; margin-top: 16px;">
+            <button class="draw-control" onclick="setDrawingMode('draw')">畫筆</button>
+            <button class="draw-control" onclick="clearCanvas()">清除</button>
+        </div>
+    </div>
+
+    <script>
+        const voiceover = new Audio('ya.mp3');
+        const victoryAudio = new Audio('yaya.mp3');
+
+        const images = [
+            'img1.png', 'img2.png', 'img3.png',
+            'img4.png', 'img5.png', 'img6.png'
+        ];
+
+        let flippedCards = [];
+        let lockBoard = false;
+        let matchedPairs = 0;
+        let timerStarted = false;
+
+        /**
+         * 將陣列複製並隨機排序，用於產生卡片陣列
+         * @param {Array} array
+         * @returns {Array}
+         */
+        function shuffle(array) {
+            return array.concat(array).sort(() => 0.5 - Math.random());
+        }
+
+        /**
+         * 建立單張卡片元素，包含正反面
+         * @param {string} image 卡片背面圖片路徑
+         * @returns {HTMLElement} 卡片元素
+         */
+        function createCard(image) {
+            const card = document.createElement('div');
+            card.className = 'card';
+            card.dataset.image = image;
+
+            const inner = document.createElement('div');
+            inner.className = 'card-inner';
+
+            const front = document.createElement('div');
+            front.className = 'card-front';
+
+            const back = document.createElement('div');
+            back.className = 'card-back';
+            back.style.backgroundImage = `url(${image})`;
+            back.style.backgroundSize = 'contain';
+
+            inner.appendChild(front);
+            inner.appendChild(back);
+            card.appendChild(inner);
+
+            card.addEventListener('click', () => flipCard(card));
+            return card;
+        }
+
+        /**
+         * 處理卡片翻轉邏輯
+         * @param {HTMLElement} card 被點擊的卡片元素
+         */
+        function flipCard(card) {
+            if (!timerStarted || lockBoard || card.classList.contains('flipped')) return;
+            card.classList.add('flipped');
+            flippedCards.push(card);
+
+            if (flippedCards.length === 2) {
+                lockBoard = true;
+                setTimeout(checkMatch, 1000);
+            }
+        }
+
+        /**
+         * 檢查兩張翻開的卡片是否配對
+         */
+        function checkMatch() {
+            const [first, second] = flippedCards;
+            if (first.dataset.image === second.dataset.image) {
+                matchedPairs++;
+                if (matchedPairs === images.length) {
+                    stopTimer();
+                    voiceover.currentTime = 0;
+                    voiceover.play(); // 最後一次配對成功時播放一次
+                    showVictoryConfetti();
+                } else {
+                    victoryAudio.currentTime = 0;
+                    victoryAudio.play(); // 每次中途配對成功時播放
+                }
+            } else {
+                first.classList.remove('flipped');
+                second.classList.remove('flipped');
+            }
+            flippedCards = [];
+            lockBoard = false;
+        }
+
+        // 顯示勝利紙屑動畫
+        function showVictoryConfetti() {
+            const confetti = document.createElement('div');
+            confetti.className = 'confetti-vertical';
+            document.body.appendChild(confetti);
+            setTimeout(() => {
+                document.body.removeChild(confetti);
+            }, 1500);
+        }
+
+        /**
+         * 初始化遊戲，生成並排列卡片
+         */
+        function initGame() {
+            matchedPairs = 0;
+            const game = document.getElementById('game');
+            game.innerHTML = '';
+            const shuffled = shuffle(images);
+            shuffled.forEach(img => game.appendChild(createCard(img)));
+        }
+
+        /**
+         * 重新開始遊戲並重置計時器
+         */
+        function restartGame() {
+            stopTimer();
+            timerStarted = false;
+            document.getElementById('timer').textContent = '0 秒';
+            flippedCards = [];
+            lockBoard = false;
+            initGame();
+        }
+
+        /**
+         * 退出遊戲提示訊息
+         */
+        function exitGame() {
+            if (confirm('感謝遊玩！是否關閉此頁面？')) {
+                window.close();
+            }
+        }
+
+        let timerInterval = null;
+        let seconds = 0;
+
+        /**
+         * 開始計時器並更新畫面
+         */
+        function startTimer() {
+            if (timerInterval !== null) return; // 防止重複啟動
+            seconds = 0;
+            document.getElementById('timer').textContent = '0 秒';
+            timerInterval = setInterval(() => {
+                seconds++;
+                document.getElementById('timer').textContent = `${seconds} 秒`;
+            }, 1000);
+            timerStarted = true;
+        }
+
+        /**
+         * 停止計時器
+         */
+        function stopTimer() {
+            clearInterval(timerInterval);
+            timerInterval = null;
+        }
+
+        window.onload = initGame;
+
+        const canvas = document.getElementById('draw-layer');
+        const ctx = canvas.getContext('2d');
+        function resizeCanvas() {
+            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            const tempCanvas = document.createElement('canvas');
+            tempCanvas.width = canvas.width;
+            tempCanvas.height = canvas.height;
+            const tempCtx = tempCanvas.getContext('2d');
+            tempCtx.putImageData(imageData, 0, 0);
+
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+
+            ctx.drawImage(tempCanvas, 0, 0, tempCanvas.width, tempCanvas.height, 0, 0, canvas.width, canvas.height);
+        }
+        resizeCanvas();
+
+        let drawing = false;
+        let drawingMode = 'draw';
+
+        function setDrawingMode(mode) {
+            drawingMode = mode;
+        }
+
+        function clearCanvas() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+        }
+
+        window.addEventListener('resize', resizeCanvas);
+
+        window.addEventListener('mousedown', (e) => {
+            drawing = true;
+            ctx.beginPath();
+            ctx.moveTo(e.clientX, e.clientY);
+        });
+
+        window.addEventListener('mousemove', (e) => {
+            if (drawing) {
+                ctx.lineTo(e.clientX, e.clientY);
+                ctx.strokeStyle = 'black';
+                ctx.lineWidth = 6;
+                ctx.lineCap = 'round';
+                ctx.stroke();
+            }
+        });
+
+        window.addEventListener('mouseup', () => {
+            drawing = false;
+        });
+    </script>
+    <p
+        style="position: absolute; bottom: 40px; left: 50%; transform: translateX(-50%); font-family: 'DFKai-SB', '標楷體', DFKai, serif; font-size: 14px; color: #444;">
+        — 奧斯卡 ＆ AI好朋友們 —
+    </p>
+</body>
+
+</html>
