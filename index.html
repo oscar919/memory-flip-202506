@@ -241,12 +241,14 @@
         <div style="display: flex; justify-content: center; flex-wrap: wrap; gap: 16px; margin-top: 16px;">
             <button class="draw-control" onclick="setDrawingMode('draw')">畫筆</button>
             <button class="draw-control" onclick="clearCanvas()">清除</button>
+            <button class="draw-control" onclick="setDrawingMode(null)">關閉</button>
         </div>
     </div>
 
     <script>
         const voiceover = new Audio('assets/ya.mp3');
         const victoryAudio = new Audio('assets/yaya.mp3');
+        const wrongAudio = new Audio('assets/wrong.mp3');
 
         const images = [
             'img/img1.png', 'img/img2.png', 'img/img3.png',
@@ -328,6 +330,9 @@
                     victoryAudio.play(); // 每次中途配對成功時播放
                 }
             } else {
+                wrongAudio.currentTime = 0;
+                wrongAudio.playbackRate = 1.8;
+                wrongAudio.play();
                 first.classList.remove('flipped');
                 second.classList.remove('flipped');
             }
@@ -420,7 +425,7 @@
         resizeCanvas();
 
         let drawing = false;
-        let drawingMode = 'draw';
+        let drawingMode = null; // 預設為 null，畫筆功能關閉
 
         function setDrawingMode(mode) {
             drawingMode = mode;
@@ -433,13 +438,15 @@
         window.addEventListener('resize', resizeCanvas);
 
         window.addEventListener('mousedown', (e) => {
-            drawing = true;
-            ctx.beginPath();
-            ctx.moveTo(e.clientX, e.clientY);
+            if (drawingMode === 'draw') {
+                drawing = true;
+                ctx.beginPath();
+                ctx.moveTo(e.clientX, e.clientY);
+            }
         });
 
         window.addEventListener('mousemove', (e) => {
-            if (drawing) {
+            if (drawingMode === 'draw' && drawing) {
                 ctx.lineTo(e.clientX, e.clientY);
                 ctx.strokeStyle = 'black';
                 ctx.lineWidth = 6;
