@@ -291,7 +291,7 @@
         .footer-responsive {
             position: fixed;
             left: 0;
-            bottom: 16px;
+            bottom: 40px;
             width: 100vw;
             font-family: 'DFKai-SB', '標楷體', DFKai, serif;
             font-size: 14px;
@@ -306,27 +306,29 @@
 
         @media (max-width: 600px) {
             .draw-controls-bar {
-                bottom: 56px;
+                bottom: 80px;
                 gap: 10px;
                 padding-bottom: 4px;
             }
 
             .footer-responsive {
-                bottom: 8px;
+                bottom: 24px;
                 font-size: 12px;
+                padding-bottom: 0;
             }
         }
 
         @media (max-width: 400px) {
             .draw-controls-bar {
-                bottom: 12px;
+                bottom: 32px;
                 gap: 6px;
                 padding-bottom: 2px;
             }
 
             .footer-responsive {
-                bottom: 2px;
+                bottom: 8px;
                 font-size: 10px;
+                padding-bottom: 0;
             }
         }
 
@@ -339,8 +341,8 @@
             margin: 0 auto;
             position: fixed;
             left: 0;
-            bottom: 72px;
-            z-index: 10001;
+            bottom: 100px;
+            z-index: 10002;
             background: rgba(255, 255, 255, 0.0);
             padding-bottom: 8px;
             pointer-events: auto;
@@ -352,29 +354,37 @@
             min-height: 100vh;
             display: flex;
             flex-direction: column;
-            padding-bottom: 120px;
+            padding-bottom: 160px;
             box-sizing: border-box;
             overflow: hidden;
         }
 
         @media (max-width: 600px) {
+            body {
+                overflow-y: auto !important;
+            }
+
             .main-flex-container {
                 height: auto;
                 min-height: 100vh;
                 max-height: none;
-                overflow-y: auto;
+                overflow-y: auto !important;
                 -webkit-overflow-scrolling: touch;
+                padding-bottom: 180px;
+            }
+
+            .main-flex-container>div[style*='flex: 1 1 auto'] {
+                margin-top: 50px !important;
             }
         }
     </style>
 </head>
 
-<body style="height: 100vh; margin: 0; padding: 0; overflow: hidden;">
+<body style="height: 100vh; margin: 0; padding: 0;">
     <canvas id="draw-layer"></canvas>
     <canvas id="pixelate-layer"
-        style="position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:10000;pointer-events:none;display:none;"></canvas>
-    <div class="main-flex-container"
-        style="display: flex; flex-direction: column; height: 100vh; min-height: 100vh; padding-bottom: 120px; box-sizing: border-box; overflow: hidden;">
+        style="position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:20000;pointer-events:none;display:none;"></canvas>
+    <div class="main-flex-container">
         <!-- 頂部區塊：標題與控制按鈕 -->
         <div class="top-section">
             <h1 class="floating-title">課堂幻視錄</h1>
@@ -391,7 +401,7 @@
         </div>
         <!-- 卡片區塊，會自動縮放不會超出空間 -->
         <div
-            style="flex: 1 1 auto; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 180px; min-width: 240px;">
+            style="flex: 1 1 auto; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; min-height: 180px; min-width: 240px; margin-top: 48px;">
             <div class="game-area-wrapper"
                 style="flex: 1 1 auto; display: flex; align-items: center; justify-content: center; width: 100%; height: 100%;">
                 <div id="game"></div>
@@ -406,6 +416,7 @@
         <p class="footer-responsive">— 奧斯卡 ＆ AI好朋友們 —</p>
     </div>
 
+    <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
     <script>
         const voiceover = new Audio('assets/ya.mp3');
         const victoryAudio = new Audio('assets/yaya.mp3');
@@ -488,10 +499,13 @@
                     bgAudio.pause();
                     stopTimer();
                     voiceover.currentTime = 0;
+                    pixelateScreenAnimation(voiceover);
                     voiceover.play(); // 最後一次配對成功時播放一次
                     showVictoryConfetti();
                     voiceover.onended = function () {
                         bgAudio.play();
+                        const pixelCanvas = document.getElementById('pixelate-layer');
+                        pixelCanvas.style.display = 'none';
                     };
                 } else {
                     victoryAudio.currentTime = 0;
@@ -637,6 +651,45 @@
             bgAudio.currentTime = 0;
             window.location.href = "/";
         };
+
+        function pixelateScreenAnimation(audio) {
+            const pixelCanvas = document.getElementById('pixelate-layer');
+            const ctx = pixelCanvas.getContext('2d');
+            pixelCanvas.width = window.innerWidth;
+            pixelCanvas.height = window.innerHeight;
+            pixelCanvas.style.display = 'block';
+
+            html2canvas(document.body).then(screenshot => {
+                let running = true;
+                function animatePixelate() {
+                    if (!running) return;
+                    // 計算像素化程度，根據音樂播放進度
+                    const progress = audio.currentTime / audio.duration;
+                    const maxPixel = 40;
+                    const pixelSize = 1 + Math.floor(progress * maxPixel);
+                    ctx.clearRect(0, 0, pixelCanvas.width, pixelCanvas.height);
+                    ctx.imageSmoothingEnabled = false;
+                    ctx.drawImage(
+                        screenshot,
+                        0, 0, screenshot.width, screenshot.height,
+                        0, 0, pixelCanvas.width / pixelSize, pixelCanvas.height / pixelSize
+                    );
+                    ctx.drawImage(
+                        pixelCanvas,
+                        0, 0, pixelCanvas.width / pixelSize, pixelCanvas.height / pixelSize,
+                        0, 0, pixelCanvas.width, pixelCanvas.height
+                    );
+                    if (!audio.paused && !audio.ended) {
+                        requestAnimationFrame(animatePixelate);
+                    }
+                }
+                animatePixelate();
+                audio.onended = function () {
+                    running = false;
+                    pixelCanvas.style.display = 'none';
+                };
+            });
+        }
     </script>
 </body>
 
