@@ -249,6 +249,8 @@
         const voiceover = new Audio('assets/ya.mp3');
         const victoryAudio = new Audio('assets/yaya.mp3');
         const wrongAudio = new Audio('assets/wrong.mp3');
+        const bgAudio = new Audio('assets/bg.mp3');
+        bgAudio.loop = true;
 
         const images = [
             'img/img1.png', 'img/img2.png', 'img/img3.png',
@@ -321,10 +323,17 @@
             if (first.dataset.image === second.dataset.image) {
                 matchedPairs++;
                 if (matchedPairs === images.length) {
+                    bgAudio.pause();
                     stopTimer();
                     voiceover.currentTime = 0;
                     voiceover.play(); // 最後一次配對成功時播放一次
                     showVictoryConfetti();
+                    victoryAudio.currentTime = 0;
+                    victoryAudio.play();
+                    victoryAudio.onended = function () {
+                        bgAudio.currentTime = 0;
+                        bgAudio.play();
+                    };
                 } else {
                     victoryAudio.currentTime = 0;
                     victoryAudio.play(); // 每次中途配對成功時播放
@@ -371,6 +380,8 @@
             flippedCards = [];
             lockBoard = false;
             initGame();
+            bgAudio.currentTime = 0;
+            bgAudio.play();
         }
 
         /**
@@ -405,7 +416,11 @@
             timerInterval = null;
         }
 
-        window.onload = initGame;
+        window.onload = function () {
+            initGame();
+            bgAudio.currentTime = 0;
+            bgAudio.play();
+        };
 
         const canvas = document.getElementById('draw-layer');
         const ctx = canvas.getContext('2d');
