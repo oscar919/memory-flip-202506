@@ -24,10 +24,10 @@
         body {
             font-family: 'DFKai-SB', '標楷體', DFKai, serif;
             text-align: center;
-            background: url('background.jpg') no-repeat center center fixed;
+            background: url('assets/background.jpg') no-repeat center center fixed;
             background-size: 100% 100%;
             padding-top: 60px;
-            cursor: url('pen.cur') 0 0, auto;
+            cursor: url('assets/pen.cur') 0 0, auto;
         }
 
         /* 頂部區塊樣式 */
@@ -245,12 +245,12 @@
     </div>
 
     <script>
-        const voiceover = new Audio('ya.mp3');
-        const victoryAudio = new Audio('yaya.mp3');
+        const voiceover = new Audio('assets/ya.mp3');
+        const victoryAudio = new Audio('assets/yaya.mp3');
 
         const images = [
-            'img1.png', 'img2.png', 'img3.png',
-            'img4.png', 'img5.png', 'img6.png'
+            'img/img1.png', 'img/img2.png', 'img/img3.png',
+            'img/img4.png', 'img/img5.png', 'img/img6.png'
         ];
 
         let flippedCards = [];
@@ -372,9 +372,7 @@
          * 退出遊戲提示訊息
          */
         function exitGame() {
-            if (confirm('感謝遊玩！是否關閉此頁面？')) {
-                window.close();
-            }
+            window.location.href = "https://classroomdaydream.vercel.app";
         }
 
         let timerInterval = null;
