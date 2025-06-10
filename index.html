@@ -381,8 +381,6 @@
             flippedCards = [];
             lockBoard = false;
             initGame();
-            bgAudio.currentTime = 0;
-            bgAudio.play();
         }
 
         /**
@@ -400,6 +398,8 @@
          */
         function startTimer() {
             if (timerInterval !== null) return; // 防止重複啟動
+            bgAudio.currentTime = 0;
+            bgAudio.play();
             seconds = 0;
             document.getElementById('timer').textContent = '0 秒';
             timerInterval = setInterval(() => {
@@ -419,8 +419,6 @@
 
         window.onload = function () {
             initGame();
-            bgAudio.currentTime = 0;
-            bgAudio.play();
         };
 
         const canvas = document.getElementById('draw-layer');
